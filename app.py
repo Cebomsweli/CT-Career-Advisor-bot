@@ -149,18 +149,39 @@ with st.sidebar:
             """,
             unsafe_allow_html=True
         )
+    
+    
+    import streamlit as st
 
-    # Navigation item with the exit icon that spins on hover
+    # JavaScript to close Streamlit app and then redirect
+    exit_script = """
+    <script>
+        function exitAndRedirect() {
+           // Close Streamlit session
+           fetch('/_stcore/stop', {method: 'POST'});
+    
+            // Delay before redirecting
+            setTimeout(() => {
+            window.location.href = "https://career-chat-ai.vercel.app";
+            }, 1000);
+        }
+   </script>
+    """
+
+    # Inject JavaScript into Streamlit
+    st.sidebar.markdown(exit_script, unsafe_allow_html=True)
+
+    # Navigation item with an exit icon that spins on hover
     st.sidebar.markdown(
-        """
-        <div class="nav-item">
-            <a href="https://career-chat-ai.vercel.app" target="_self">
-                <i class="fas fa-sign-out-alt"></i> Exit
-            </a>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    """
+    <div class="nav-item">
+        <a href="javascript:void(0);" onclick="exitAndRedirect()">
+            <i class="fas fa-sign-out-alt"></i> Exit
+        </a>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Streamlit application for displaying industries and chatbot interface
 def chatbot_interface():
