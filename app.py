@@ -10,7 +10,8 @@ st.set_page_config(page_title="Career Advisor ChatBot", layout="wide")
 load_dotenv()  # This will load variables from the .env file into the environment
 
 # Retrieve the API key from the environment
-api_key = os.getenv("GROQ_API_KEY")
+#api_key = os.getenv("GROQ_API_KEY")
+api_key = st.secrets["general"]["GROQ_API_KEY"]
 
 # Ensure the API key is loaded
 if not api_key:
