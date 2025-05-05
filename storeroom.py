@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 import streamlit as st
 from groq import Groq
 
-
 # Set page configuration - Must be called at the beginning
 st.set_page_config(page_title="Career Advisor ChatBot", layout="wide")
 
@@ -11,7 +10,8 @@ st.set_page_config(page_title="Career Advisor ChatBot", layout="wide")
 load_dotenv()  # This will load variables from the .env file into the environment
 
 # Retrieve the API key from the environment
-api_key = os.getenv("GROQ_API_KEY")
+#api_key = os.getenv("GROQ_API_KEY")
+api_key = st.secrets["general"]["GROQ_API_KEY"]
 
 # Ensure the API key is loaded
 if not api_key:
@@ -149,18 +149,39 @@ with st.sidebar:
             """,
             unsafe_allow_html=True
         )
+    
+    
+    import streamlit as st
 
-    # Navigation item with the exit icon that spins on hover
+    # JavaScript to close Streamlit app and then redirect
+    exit_script = """
+    <script>
+        function exitAndRedirect() {
+           // Close Streamlit session
+           fetch('/_stcore/stop', {method: 'POST'});
+    
+            // Delay before redirecting
+            setTimeout(() => {
+            window.location.href = "https://career-chat-ai.vercel.app";
+            }, 1000);
+        }
+   </script>
+    """
+
+    # Inject JavaScript into Streamlit
+    st.sidebar.markdown(exit_script, unsafe_allow_html=True)
+
+    # Navigation item with an exit icon that spins on hover
     st.sidebar.markdown(
-        """
-        <div class="nav-item">
-            <a href="https://career-chat-ai.vercel.app" target="_self">
-                <i class="fas fa-sign-out-alt"></i> Exit
-            </a>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    """
+    <div class="nav-item">
+        <a href="javascript:void(0);" onclick="exitAndRedirect()">
+            <i class="fas fa-sign-out-alt"></i> Exit
+        </a>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Streamlit application for displaying industries and chatbot interface
 def chatbot_interface():
@@ -260,6 +281,7 @@ def chatbot_interface():
             st.markdown(message["content"])
 
     # User input field
+
     if user_input := st.chat_input("Type your message here..."):
         # Add user input to chat history
         st.session_state.messages.append({"role": "user", "content": user_input})
@@ -300,7 +322,64 @@ def chatbot_interface():
             })
             with st.chat_message("assistant"):
                 st.markdown(f"Oops, there was an issue with the API: {str(e)}. Please try again later.")
- 
+    
+    #beautifying the input box
+    import streamlit.components.v1 as components
+
+    # Custom CSS to style the fixed input box
+    st.markdown("""
+    <style>
+    .input-container {
+        position: fixed;
+        bottom: 20px;
+        left: 5%;
+        width: 90%;
+        background-color: white;
+        border: 2px solid #E0B0FF;
+        border-radius: 30px;
+        padding: 10px 15px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        z-index: 9999;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .input-container input {
+        border: none;
+        outline: none;
+        width: 85%;
+        font-size: 16px;
+    }
+    .input-container button {
+        background-color: #E0B0FF;
+        border: none;
+        color: white;
+        border-radius: 20px;
+        padding: 8px 20px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Create a container for user input and submit button
+    components.html("""
+    <div class="input-container">
+        <input type="text" id="userInput" placeholder="Ask me about careers...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+    <script>
+        function sendMessage() {
+            const input = document.getElementById('userInput').value;
+            if (input) {
+                window.parent.postMessage({ isStreamlitMessage: true, type: 'streamlit:setComponentValue', value: input }, '*');
+            }
+        }
+    </script>
+    """, height=100)
+
 # Run the chatbot interface
 if __name__ == "__main__":
     chatbot_interface()
+    
+# I store useful codes here for future reference. This is a simple example of how to use the Groq API to create a chatbot interface in Streamlit. The chatbot can provide information about growing industries, their growth estimates, and key skills required for each industry. The user can interact with the chatbot by typing their queries in the input box at the bottom of the page.

@@ -1,4 +1,5 @@
 import os
+import requests
 import datetime
 from dotenv import load_dotenv
 import streamlit as st
@@ -75,29 +76,74 @@ def get_growing_industries():
         }
     ]
 
-# ----------------- Authentication Functions ------------------
-def create_account(email, password, username):
+# ----------------- Updated Authentication Functions ------------------
+def create_account(email, password, confirm_password, username):
     try:
+        # Validate inputs
+        if not all([email, password, confirm_password, username]):
+            return False, "All fields are required"
+        
+        if len(password) < 6:
+            return False, "Password must be at least 6 characters"
+            
+        if password != confirm_password:
+            return False, "Passwords do not match"
+            
+        # Check if email already exists
+        try:
+            auth.get_user_by_email(email)
+            return False, "Email already in use"
+        except auth.UserNotFoundError:
+            pass
+            
+        # Create user
         user = auth.create_user(
             email=email,
             password=password,
             display_name=username
         )
+        
+        # Store user data
         db.collection("users").document(user.uid).set({
             "email": email,
             "username": username,
             "created_at": datetime.datetime.now()
         })
-        return user.uid
+        
+        return True, "Account created successfully!"
     except Exception as e:
-        return str(e)
+        return False, f"Account creation failed: {str(e)}"
 
 def login_user(email, password):
     try:
-        user = auth.get_user_by_email(email)
-        return user.uid, user.display_name or email.split('@')[0]
-    except Exception:
-        return None, None
+        if not email or not password:
+            return None, None, "Email and password are required"
+            
+        # Use Firebase REST API for password verification
+        API_KEY = os.getenv("FIREBASE_API_KEY")
+        if not API_KEY:
+            return None, None, "Firebase API key not configured"
+            
+        url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={API_KEY}"
+        payload = {
+            "email": email,
+            "password": password,
+            "returnSecureToken": True
+        }
+        response = requests.post(url, json=payload)
+        result = response.json()
+
+        if "idToken" in result:
+            # Get user details from Admin SDK
+            user = auth.get_user_by_email(email)
+            return user.uid, user.display_name or email.split('@')[0], "success"
+        else:
+            error = result.get("error", {}).get("message", "Login failed")
+            return None, None, error
+            
+    except Exception as e:
+        return None, None, str(e)
+
 
 # ----------------- Chat Storage Functions ------------------
 def save_message(uid, role, content):
@@ -125,76 +171,62 @@ if "logged_in" not in st.session_state:
         {"role": "system", "content": "You are a career advisor chatbot that provides detailed, personalized advice about career paths, job recommendations, and industry trends."}
     ]
 
-# ----------------- Sidebar UI ------------------
+# ----------------- Updated Sidebar Authentication UI ------------------
 with st.sidebar:
-    st.markdown("""
-    <style>
-    [data-testid="stSidebar"] {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        padding: 20px;
-        border-right: 1px solid #dee2e6;
-    }
-    .user-profile {
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        margin-bottom: 25px;
-    }
-    .auth-form {
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    }
-    .logout-btn {
-        width: 100%;
-        margin-top: 15px;
-        background-color: #ff4b4b;
-        color: white;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
     if st.session_state.logged_in:
-        # User Profile Section
-        st.markdown(f"""
-        <div class="user-profile">
-            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
-                <div style="font-size: 40px;">👤</div>
-                <div>
-                    <h3 style="margin: 0; color: #2c3e50;">{st.session_state.username}</h3>
-                    <p style="margin: 0; color: #7f8c8d; font-size: 14px;">{st.session_state.email}</p>
-                </div>
-            </div>
-            <hr style="margin: 15px 0; border-color: #eee;">
-            <p style="font-size: 14px; color: #555;">Account created: {datetime.datetime.now().strftime('%b %d, %Y')}</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Logout Button
-        if st.button("🚪 Logout", key="logout_btn", use_container_width=True, type="primary"):
+        st.markdown("### 👤 Logged In")
+        st.write(f"**Username:** {st.session_state.username}")
+        #st.write(f"**Email:** {st.session_state.email}")
+        
+        if st.button("🔓 Logout"):
             st.session_state.logged_in = False
-            st.session_state.email = ""
             st.session_state.uid = ""
+            st.session_state.email = ""
             st.session_state.username = ""
             st.session_state.messages = []
+            st.session_state.conversation_history = [
+                {"role": "system", "content": "You are a career advisor chatbot that provides detailed, personalized advice about career paths, job recommendations, and industry trends."}
+            ]
+            st.success("You have been logged out.")
             st.rerun()
     else:
-        # Authentication Form
         with st.container():
             st.markdown("### 🔐 Account Access")
-            auth_tab = st.radio("Select Option:", ["Login", "Create Account"], label_visibility="collapsed", horizontal=True)
+            auth_tab = st.radio("Select Option:", 
+                              ["Login", "Create Account"], 
+                              label_visibility="collapsed", 
+                              horizontal=True)
             
             with st.form(key="auth_form"):
                 if auth_tab == "Create Account":
                     username = st.text_input("Choose Username")
-                email = st.text_input("Email Address")
-                password = st.text_input("Password", type="password")
+                    email = st.text_input("Email Address")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        password = st.text_input("Password", 
+                                               type="password",
+                                               help="Minimum 6 characters")
+                    with col2:
+                        confirm_password = st.text_input("Confirm Password", 
+                                                       type="password")
+                    
+                    if st.form_submit_button("Create Account"):
+                        success, message = create_account(email, password, confirm_password, username)
+                        if success:
+                            st.success(message)
+                            st.session_state.email = email  
+                            st.rerun()
+                        else:
+                            st.error(message)
                 
-                if st.form_submit_button("Continue" if auth_tab == "Login" else "Create Account"):
-                    if auth_tab == "Login":
-                        uid, username = login_user(email, password)
+                else:  # Login tab
+                    email = st.text_input("Email Address", 
+                                        value=st.session_state.get("email", ""))
+                    password = st.text_input("Password", 
+                                           type="password")
+                    
+                    if st.form_submit_button("Login"):
+                        uid, username, message = login_user(email, password)
                         if uid:
                             st.session_state.logged_in = True
                             st.session_state.uid = uid
@@ -203,20 +235,7 @@ with st.sidebar:
                             st.session_state.messages = load_messages(uid)
                             st.rerun()
                         else:
-                            st.error("Invalid email or password")
-                    else:
-                        if not username:
-                            st.error("Please choose a username")
-                        else:
-                            uid = create_account(email, password, username)
-                            if "uid" in str(uid):
-                                st.session_state.logged_in = True
-                                st.session_state.uid = uid
-                                st.session_state.email = email
-                                st.session_state.username = username
-                                st.rerun()
-                            else:
-                                st.error(uid)
+                            st.error(message)
 
 # ----------------- Main Chat Interface ------------------
 if st.session_state.logged_in:

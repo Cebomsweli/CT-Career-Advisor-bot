@@ -230,7 +230,7 @@ st.markdown("""
 
 [data-testid="stSidebar"] .stTextInput input {
     background: rgba(255,255,255,0.1);
-    color: black;
+    color: white;
     border: 1px solid rgba(255,255,255,0.3);
 }
 
@@ -596,7 +596,7 @@ if st.session_state.logged_in:
     
     # The actual input (using Streamlit's native chat input for better functionality)
     user_input = st.chat_input(
-        " ask a question...", 
+        "Type your option number (1-5) or ask a question...", 
         key="fixed_chat_input"
     )
     
