@@ -28,11 +28,34 @@ if not api_key:
 client = Groq(api_key=api_key)
 # Add this to your initialization section
 
-# Initialize Firebase
+# # Initialize Firebase
+# if not firebase_admin._apps:
+#     firebase_key = st.secrets["FIREBASE_KEY"]    #Enabling the key to be accessible online
+#     cred = credentials.Certificate(firebase_key)
+#     firebase_admin.initialize_app(cred)
+# db = firestore.client()
+# Initialize Firebase only if it isn't already initialized
 if not firebase_admin._apps:
-    firebase_key = st.secrets["FIREBASE_KEY"]    #Enabling the key to be accessible online
-    cred = credentials.Certificate(firebase_key)
-    firebase_admin.initialize_app(cred)
+    try:
+        # Retrieve the Firebase credentials from Streamlit secrets
+        firebase_key = st.secrets["FIREBASE_KEY"]  # Firebase credentials as a dictionary
+        
+        # Ensure firebase_key is in the expected format (it should be a dictionary, not a string)
+        if isinstance(firebase_key, dict):
+            # Initialize Firebase with the dictionary directly
+            cred = credentials.Certificate(firebase_key)
+            firebase_admin.initialize_app(cred)
+        else:
+            raise ValueError("The FIREBASE_KEY secret is not in the correct dictionary format.")
+        
+    except KeyError as e:
+        st.error(f"Missing secret: {e}")
+        st.stop()
+    except ValueError as e:
+        st.error(f"Error with the Firebase credentials format: {e}")
+        st.stop()
+
+# Access Firestore database
 db = firestore.client()
 
 # ----------------- Industry Data ------------------
