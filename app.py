@@ -27,37 +27,7 @@ if not api_key:
 # Initialize Groq client
 client = Groq(api_key=api_key)
 # Add this to your initialization section
-def initialize_courses():
-    if not db.collection("courses").get():
-        courses = [
-            {
-                "title": "Python for Data Science",
-                "provider": "Coursera",
-                "duration": "6 weeks",
-                "level": "Beginner",
-                "link": "https://www.coursera.org/learn/python-data-science",
-                "careers": ["Data Scientist", "AI Engineer", "Software Developer"],
-                "skills": ["Python", "Pandas", "Data Analysis"],
-                "industry": "Technology",
-                "free": False,
-                "rating": 4.7
-            },
-            {
-                "title": "Digital Marketing Fundamentals",
-                "provider": "Udemy",
-                "duration": "8 hours",
-                "level": "Beginner",
-                "link": "https://www.udemy.com/digital-marketing-fundamentals",
-                "careers": ["Digital Marketer", "SEO Specialist", "Content Manager"],
-                "skills": ["SEO", "Social Media", "Content Strategy"],
-                "industry": "E-commerce",
-                "free": True,
-                "rating": 4.5
-            },
-            # Add more courses as needed
-        ]
-        for course in courses:
-            db.collection("courses").add(course)
+
 # Initialize Firebase
 if not firebase_admin._apps:
     firebase_key = st.secrets["FIREBASE_KEY"]    #Enabling the key to be accessible online
