@@ -60,7 +60,8 @@ def initialize_courses():
             db.collection("courses").add(course)
 # Initialize Firebase
 if not firebase_admin._apps:
-    cred = credentials.Certificate("key.json")
+    firebase_key = st.secrets["FIREBASE_KEY"]    #Enabling the key to be accessible online
+    cred = credentials.Certificate(firebase_key)
     firebase_admin.initialize_app(cred)
 db = firestore.client()
 
