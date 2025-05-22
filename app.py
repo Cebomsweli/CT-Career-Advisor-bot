@@ -17,8 +17,7 @@ st.set_page_config(
 
 # Load environment variables
 load_dotenv()
-#api_key = os.getenv("GROQ_API_KEY")
-api_key = st.secrets["general"]["GROQ_API_KEY"]
+api_key = os.getenv("GROQ_API_KEY")
 #api_key = st.secrets["general"]["GROQ_API_KEY"]
 if not api_key:
     st.error("GROQ_API_KEY not found in .env file")
@@ -26,36 +25,11 @@ if not api_key:
 
 # Initialize Groq client
 client = Groq(api_key=api_key)
-# Add this to your initialization section
 
-# # Initialize Firebase
-# if not firebase_admin._apps:
-#     firebase_key = st.secrets["FIREBASE_KEY"]    #Enabling the key to be accessible online
-#     cred = credentials.Certificate(firebase_key)
-#     firebase_admin.initialize_app(cred)
-# db = firestore.client()
-# Initialize Firebase only if it isn't already initialized
+# Initialize Firebase
 if not firebase_admin._apps:
-    try:
-        # Retrieve the Firebase credentials from Streamlit secrets
-        firebase_key = st.secrets["FIREBASE_KEY"]  # Firebase credentials as a dictionary
-        
-        # Ensure firebase_key is in the expected format (it should be a dictionary, not a string)
-        if isinstance(firebase_key, dict):
-            # Initialize Firebase with the dictionary directly
-            cred = credentials.Certificate(firebase_key)
-            firebase_admin.initialize_app(cred)
-        else:
-            raise ValueError("The FIREBASE_KEY secret is not in the correct dictionary format.")
-        
-    except KeyError as e:
-        st.error(f"Missing secret: {e}")
-        st.stop()
-    except ValueError as e:
-        st.error(f"Error with the Firebase credentials format: {e}")
-        st.stop()
-
-# Access Firestore database
+    cred = credentials.Certificate("key.json")
+    firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 # ----------------- Industry Data ------------------
@@ -359,13 +333,7 @@ with st.sidebar:
         st.divider()
         
         # Resources
-        st.markdown("### 📚 Resources")
-        st.markdown("""
-        <a href="#" class="resource-link">📝 Career Assessment</a>
-        <a href="#" class="resource-link">💰 Salary Calculator</a>
-        <a href="#" class="resource-link">🎓 Skill Courses</a>
-        <a href="#" class="resource-link">📄 Resume Builder</a>
-        """, unsafe_allow_html=True)
+        
         
         # Theme Selector
         st.divider()
